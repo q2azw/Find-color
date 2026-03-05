@@ -1,10 +1,12 @@
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이미지 색상 팔레트 매칭 도구</title>
+<title>이미지 색상 → 팔레트 색 찾기</title>
 
 <style>
+
 body{
 font-family:Arial;
 background:#f4f4f4;
@@ -17,28 +19,34 @@ margin-bottom:20px;
 }
 
 #imagePreview{
-max-width:700px;
-max-height:700px;
+width:700px;
+max-width:90vw;
 border:2px solid #aaa;
 border-radius:10px;
 cursor:crosshair;
-}
-
-.section{
-margin-top:25px;
+image-rendering:pixelated;
 }
 
 .colorBox{
-width:130px;
-height:130px;
+width:120px;
+height:120px;
 margin:auto;
 border-radius:10px;
 border:2px solid #333;
 }
 
-.label{
-font-weight:bold;
-margin:10px;
+#paletteGrid{
+display:grid;
+grid-template-columns:repeat(auto-fill,30px);
+justify-content:center;
+gap:4px;
+margin-top:20px;
+}
+
+.paletteColor{
+width:30px;
+height:30px;
+border:1px solid #000;
 }
 
 </style>
@@ -48,39 +56,26 @@ margin:10px;
 
 <h1>이미지 색상 → 팔레트 색 찾기</h1>
 
-<div class="section">
-
-<div class="label">이미지 업로드</div>
+<h3>이미지 업로드</h3>
 <input type="file" id="imageUpload" accept="image/*">
 
 <br><br>
 
 <img id="imagePreview">
 
-</div>
-
-<div class="section">
-
-<div class="label">선택한 색상</div>
+<h3>선택한 색</h3>
 <div id="selectedColor" class="colorBox"></div>
 <div id="selectedHex"></div>
 
-</div>
-
-<div class="section">
-
-<div class="label">가장 가까운 팔레트 색상</div>
+<h3>가장 가까운 팔레트 색</h3>
 <div id="closestColor" class="colorBox"></div>
 <div id="closestHex"></div>
 
-</div>
-
-<div class="section">
-
-<div class="label">팔레트 업로드 (.aco 지원)</div>
+<h3>팔레트 업로드 (.aco)</h3>
 <input type="file" id="paletteUpload">
 
-</div>
+<h3>팔레트 색 목록</h3>
+<div id="paletteGrid"></div>
 
 <script>
 
@@ -96,6 +91,8 @@ const closestColor=document.getElementById("closestColor")
 const selectedHex=document.getElementById("selectedHex")
 const closestHex=document.getElementById("closestHex")
 
+const paletteGrid=document.getElementById("paletteGrid")
+
 imageUpload.addEventListener("change",function(){
 
 const file=this.files[0]
@@ -105,7 +102,27 @@ const reader=new FileReader()
 
 reader.onload=function(e){
 
-imagePreview.src=e.target.result
+const img=new Image()
+
+img.onload=function(){
+
+const canvas=document.createElement("canvas")
+const ctx=canvas.getContext("2d")
+
+const scale=4
+
+canvas.width=img.width*scale
+canvas.height=img.height*scale
+
+ctx.imageSmoothingEnabled=false
+
+ctx.drawImage(img,0,0,canvas.width,canvas.height)
+
+imagePreview.src=canvas.toDataURL()
+
+}
+
+img.src=e.target.result
 
 }
 
@@ -124,7 +141,9 @@ reader.onload=function(e){
 
 palette=parseACO(e.target.result)
 
-alert("팔레트 색상 "+palette.length+"개 로드됨")
+displayPalette()
+
+alert("팔레트 색 "+palette.length+"개 로드됨")
 
 }
 
@@ -144,7 +163,6 @@ let offset=4
 
 for(let i=0;i<count;i++){
 
-let colorSpace=view.getUint16(offset)
 offset+=2
 
 let r=view.getUint16(offset)/256
@@ -163,6 +181,25 @@ colors.push({r,g,b})
 }
 
 return colors
+
+}
+
+function displayPalette(){
+
+paletteGrid.innerHTML=""
+
+palette.forEach(color=>{
+
+const hex=rgbToHex(color.r,color.g,color.b)
+
+const div=document.createElement("div")
+div.className="paletteColor"
+div.style.background=hex
+div.title=hex
+
+paletteGrid.appendChild(div)
+
+})
 
 }
 
@@ -199,7 +236,7 @@ findClosestColor(r,g,b)
 function rgbToHex(r,g,b){
 
 return "#"+[r,g,b].map(x=>{
-const hex=x.toString(16)
+const hex=Math.round(x).toString(16)
 return hex.length===1?"0"+hex:hex
 }).join("")
 
@@ -244,3 +281,4 @@ closestHex.innerText=hex
 
 </body>
 </html>
+```
