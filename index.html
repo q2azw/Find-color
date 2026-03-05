@@ -279,13 +279,15 @@ const hex=rgbToHex(closest.r,closest.g,closest.b)
 closestColor.style.background=hex
 closestHex.innerText=hex
 
-document.querySelectorAll(".paletteColor").forEach(el=>{
-el.classList.remove("highlight")
+// ⭐ 기존 highlight 제거 후 바로 추가하지 않고
+// 현재 closestIndex만 강조
+document.querySelectorAll(".paletteColor").forEach((el,i)=>{
+  if(i===closestIndex){
+    el.classList.add("highlight")
+  } else {
+    el.classList.remove("highlight")
+  }
 })
-
-if(closestIndex>=0){
-document.querySelectorAll(".paletteColor")[closestIndex].classList.add("highlight")
-}
 
 }
 
