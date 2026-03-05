@@ -18,6 +18,28 @@ h1{
 margin-bottom:20px;
 }
 
+/* 메인 컨테이너: 좌우 배치 */
+#mainContainer{
+  display:flex;
+  justify-content:center;
+  gap:40px;
+  align-items:flex-start;
+}
+
+/* 왼쪽: 팔레트 + 파일 업로드 */
+#leftPanel{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* 오른쪽: 이미지 + 이미지 업로드 버튼 위쪽 배치 */
+#rightPanel{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
 #imagePreview{
 width:700px;
 max-width:90vw;
@@ -25,6 +47,7 @@ border:2px solid #666;
 border-radius:10px;
 cursor:crosshair;
 image-rendering:pixelated;
+margin-top:10px;
 }
 
 .colorBox{
@@ -61,12 +84,16 @@ border:2px solid yellow !important;
 
 <h1>이미지 색상 → 팔레트 색 찾기</h1>
 
-<h3>이미지 업로드</h3>
-<input type="file" id="imageUpload" accept="image/*">
+<div id="mainContainer">
 
-<br><br>
+<!-- 왼쪽: 팔레트 + 파일 업로드 -->
+<div id="leftPanel">
 
-<img id="imagePreview">
+<h3>팔레트 업로드 (.aco)</h3>
+<input type="file" id="paletteUpload">
+
+<h3>팔레트 색 목록</h3>
+<div id="paletteGrid"></div>
 
 <h3>선택한 색</h3>
 <div id="selectedColor" class="colorBox"></div>
@@ -76,14 +103,20 @@ border:2px solid yellow !important;
 <div id="closestColor" class="colorBox"></div>
 <div id="closestHex"></div>
 
-<h3>팔레트 업로드 (.aco)</h3>
-<input type="file" id="paletteUpload">
+</div>
 
-<h3>팔레트 색 목록</h3>
-<div id="paletteGrid"></div>
+<!-- 오른쪽: 이미지 업로드 버튼 + 이미지 -->
+<div id="rightPanel">
+
+<h3>이미지 업로드</h3>
+<input type="file" id="imageUpload" accept="image/*">
+
+<img id="imagePreview">
+
+</div>
 
 <script>
-
+// 기존 전체 코드 그대로 유지
 let palette=[]
 
 const imageUpload=document.getElementById("imageUpload")
@@ -226,7 +259,6 @@ const y=e.clientY-rect.top
 
 const pixel=ctx.getImageData(x,y,1,1).data
 
-// ⭐ 선택 색상도 반올림 적용
 const r=Math.round(pixel[0])
 const g=Math.round(pixel[1])
 const b=Math.round(pixel[2])
