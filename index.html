@@ -10,12 +10,32 @@
 body{
 font-family:Arial;
 background:#f4f4f4;
+color:#000;
 text-align:center;
 padding:30px;
+transition:0.3s;
 }
 
-h1{
-margin-bottom:20px;
+.dark{
+background:#2b2b2b;
+color:#eee;
+}
+
+#themeToggle{
+position:fixed;
+top:15px;
+right:20px;
+padding:8px 14px;
+cursor:pointer;
+border-radius:6px;
+border:none;
+background:#444;
+color:white;
+}
+
+.dark #themeToggle{
+background:#ddd;
+color:black;
 }
 
 #imagePreview{
@@ -25,12 +45,26 @@ border:2px solid #aaa;
 border-radius:10px;
 cursor:crosshair;
 image-rendering:pixelated;
+margin-top:20px;
+}
+
+.colorContainer{
+display:flex;
+justify-content:center;
+gap:40px;
+margin-top:20px;
+flex-wrap:wrap;
+}
+
+.colorBlock{
+display:flex;
+flex-direction:column;
+align-items:center;
 }
 
 .colorBox{
 width:120px;
 height:120px;
-margin:auto;
 border-radius:10px;
 border:2px solid #333;
 }
@@ -49,27 +83,22 @@ height:30px;
 border:1px solid #000;
 }
 
+.highlight{
+border:3px solid yellow;
+}
+
+.dark .paletteColor{
+border:1px solid #777;
+}
+
 </style>
 </head>
 
 <body>
 
+<button id="themeToggle">다크모드</button>
+
 <h1>이미지 색상 → 팔레트 색 찾기</h1>
-
-<h3>이미지 업로드</h3>
-<input type="file" id="imageUpload" accept="image/*">
-
-<br><br>
-
-<img id="imagePreview">
-
-<h3>선택한 색</h3>
-<div id="selectedColor" class="colorBox"></div>
-<div id="selectedHex"></div>
-
-<h3>가장 가까운 팔레트 색</h3>
-<div id="closestColor" class="colorBox"></div>
-<div id="closestHex"></div>
 
 <h3>팔레트 업로드 (.aco)</h3>
 <input type="file" id="paletteUpload">
@@ -77,9 +106,33 @@ border:1px solid #000;
 <h3>팔레트 색 목록</h3>
 <div id="paletteGrid"></div>
 
+<div class="colorContainer">
+
+<div class="colorBlock">
+<h3>선택한 색</h3>
+<div id="selectedColor" class="colorBox"></div>
+<div id="selectedHex"></div>
+</div>
+
+<div class="colorBlock">
+<h3>가장 가까운 팔레트 색</h3>
+<div id="closestColor" class="colorBox"></div>
+<div id="closestHex"></div>
+</div>
+
+</div>
+
+<h3>이미지 업로드</h3>
+<input type="file" id="imageUpload" accept="image/*">
+
+<br>
+
+<img id="imagePreview">
+
 <script>
 
 let palette=[]
+let paletteElements=[]
 
 const imageUpload=document.getElementById("imageUpload")
 const paletteUpload=document.getElementById("paletteUpload")
@@ -92,6 +145,18 @@ const selectedHex=document.getElementById("selectedHex")
 const closestHex=document.getElementById("closestHex")
 
 const paletteGrid=document.getElementById("paletteGrid")
+
+const themeToggle=document.getElementById("themeToggle")
+
+themeToggle.onclick=function(){
+
+document.body.classList.toggle("dark")
+
+themeToggle.innerText=
+document.body.classList.contains("dark")
+?"라이트모드":"다크모드"
+
+}
 
 imageUpload.addEventListener("change",function(){
 
@@ -187,6 +252,7 @@ return colors
 function displayPalette(){
 
 paletteGrid.innerHTML=""
+paletteElements=[]
 
 palette.forEach(color=>{
 
@@ -198,6 +264,8 @@ div.style.background=hex
 div.title=hex
 
 paletteGrid.appendChild(div)
+
+paletteElements.push(div)
 
 })
 
@@ -246,10 +314,10 @@ function findClosestColor(r,g,b){
 
 if(palette.length===0) return
 
-let closest=null
+let closestIndex=0
 let minDist=999999
 
-palette.forEach(color=>{
+palette.forEach((color,i)=>{
 
 const dist=Math.sqrt(
 (r-color.r)*(r-color.r)+
@@ -260,20 +328,22 @@ const dist=Math.sqrt(
 if(dist<minDist){
 
 minDist=dist
-closest=color
+closestIndex=i
 
 }
 
 })
 
-if(closest){
+const closest=palette[closestIndex]
 
 const hex=rgbToHex(closest.r,closest.g,closest.b)
 
 closestColor.style.background=hex
 closestHex.innerText=hex
 
-}
+paletteElements.forEach(el=>el.classList.remove("highlight"))
+
+paletteElements[closestIndex].classList.add("highlight")
 
 }
 
