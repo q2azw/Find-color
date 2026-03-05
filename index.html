@@ -55,7 +55,7 @@ border-radius:10px;
 border:2px solid #aaa;
 }
 
-/* ✅ 추가: 선택색/가까운색 가로 배치 */
+/* ✅ 선택색/가까운색 가로 배치 */
 #compareRow{
 display:flex;
 gap:20px;
@@ -77,7 +77,7 @@ margin-bottom:8px;
 font-weight:bold;
 }
 
-/* ⭐ 여기만 수정됨 */
+/* ⭐ 팔레트 그리드 (10칸) */
 #paletteGrid{
 display:grid;
 grid-template-columns:repeat(10,30px);
@@ -92,7 +92,7 @@ border:2px solid black;
 box-sizing:border-box;
 }
 
-/* ✅ 수정: 하이라이트로 인한 움찔 방지 */
+/* ✅ 하이라이트로 인한 움찔 방지 */
 .highlight{
 outline:2px solid yellow;
 outline-offset:-2px;
@@ -109,10 +109,7 @@ outline-offset:-2px;
 
 <div id="leftPanel">
 
-<h3>팔레트 업로드 (.aco)</h3>
-<input type="file" id="paletteUpload">
-
-<!-- ✅ 위치 변경 + 가로 나열 -->
+<!-- ✅ (유지) 선택색/가까운색은 팔레트 목록보다 위 -->
 <h3>선택한 색 / 가장 가까운 팔레트 색</h3>
 
 <div id="compareRow">
@@ -128,6 +125,10 @@ outline-offset:-2px;
     <div id="closestHex"></div>
   </div>
 </div>
+
+<!-- ✅ 위치 변경: 팔레트 업로드 텍스트/버튼을 '팔레트 색 목록' 바로 위로 -->
+<h3>팔레트 업로드 (.aco)</h3>
+<input type="file" id="paletteUpload">
 
 <h3>팔레트 색 목록</h3>
 <div id="paletteGrid"></div>
@@ -149,7 +150,7 @@ outline-offset:-2px;
 
 let palette=[]
 
-/* ✅ 추가: 클릭 샘플링 정확도용 캔버스 보관 */
+/* ✅ 클릭 샘플링 정확도용 캔버스 보관 */
 let previewCanvas=null
 let previewCtx=null
 
@@ -190,7 +191,7 @@ ctx.imageSmoothingEnabled=false
 
 ctx.drawImage(img,0,0,canvas.width,canvas.height)
 
-/* ✅ 추가: 만들어진 캔버스를 그대로 저장 */
+/* ✅ 만들어진 캔버스를 그대로 저장 */
 previewCanvas=canvas
 previewCtx=ctx
 
@@ -279,7 +280,9 @@ paletteGrid.appendChild(div)
 
 }
 
-/* ✅ 수정: 클릭 시 새 캔버스 만들지 않고, 저장한 캔버스에서 정확히 샘플링 */
+/* ✅ 수정: 클릭 샘플링 안정화 (#ffe983 같은 경계/근접색 흔들림 개선)
+   - floor -> round
+   - 1픽셀 -> 주변 3x3 평균 */
 imagePreview.addEventListener("click",function(e){
 
 if(!previewCanvas || !previewCtx) return
@@ -289,19 +292,40 @@ const rect=imagePreview.getBoundingClientRect()
 const scaleX=previewCanvas.width/rect.width
 const scaleY=previewCanvas.height/rect.height
 
-let x=Math.floor((e.clientX-rect.left)*scaleX)
-let y=Math.floor((e.clientY-rect.top)*scaleY)
+let x=Math.round((e.clientX-rect.left)*scaleX)
+let y=Math.round((e.clientY-rect.top)*scaleY)
 
 if(x<0) x=0
 if(y<0) y=0
 if(x>=previewCanvas.width) x=previewCanvas.width-1
 if(y>=previewCanvas.height) y=previewCanvas.height-1
 
-const pixel=previewCtx.getImageData(x,y,1,1).data
+const radius=1
+let rSum=0,gSum=0,bSum=0,count=0
 
-const r=Math.round(pixel[0])
-const g=Math.round(pixel[1])
-const b=Math.round(pixel[2])
+for(let dy=-radius;dy<=radius;dy++){
+for(let dx=-radius;dx<=radius;dx++){
+
+let sx=x+dx
+let sy=y+dy
+
+if(sx<0) sx=0
+if(sy<0) sy=0
+if(sx>=previewCanvas.width) sx=previewCanvas.width-1
+if(sy>=previewCanvas.height) sy=previewCanvas.height-1
+
+const p=previewCtx.getImageData(sx,sy,1,1).data
+rSum+=p[0]
+gSum+=p[1]
+bSum+=p[2]
+count++
+
+}
+}
+
+const r=Math.round(rSum/count)
+const g=Math.round(gSum/count)
+const b=Math.round(bSum/count)
 
 const hex=rgbToHex(r,g,b)
 
