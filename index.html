@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>색상 팔레트 매칭 도구</title>
+<title>이미지 색상 팔레트 매칭 도구</title>
 
 <style>
 body{
@@ -52,12 +52,12 @@ border:4px solid yellow;
 <h3>선택한 색상</h3>
 <div id="picked" style="width:60px;height:60px;margin:auto;"></div>
 
-<h3>가장 가까운 팔레트 색</h3>
+<h3>가장 가까운 팔레트 색상</h3>
 <div id="closest" style="width:60px;height:60px;margin:auto;"></div>
 
 <p id="delta"></p>
 
-<h3>팔레트 업로드 (.aco / .ase / .json)</h3>
+<h3>팔레트 업로드 (.aco .ase .json)</h3>
 
 <input type="file" id="paletteUpload">
 
@@ -76,12 +76,9 @@ let file = e.target.files[0]
 let img = new Image()
 
 img.onload = ()=>{
-
 canvas.width = img.width
 canvas.height = img.height
-
 ctx.drawImage(img,0,0)
-
 }
 
 img.src = URL.createObjectURL(file)
@@ -98,11 +95,9 @@ let y = e.clientY - rect.top
 let data = ctx.getImageData(x,y,1,1).data
 
 let color = {
-
 r:data[0],
 g:data[1],
 b:data[2]
-
 }
 
 showPicked(color)
@@ -122,11 +117,9 @@ el.style.background =
 function dist(c1,c2){
 
 return Math.sqrt(
-
 (c1.r-c2.r)**2 +
 (c1.g-c2.g)**2 +
 (c1.b-c2.b)**2
-
 )
 
 }
@@ -141,10 +134,8 @@ palette.forEach(c=>{
 let d=dist(target,c)
 
 if(d<min){
-
 min=d
 best=c
-
 }
 
 })
@@ -187,7 +178,7 @@ let div=document.createElement("div")
 
 div.className="colorBox"
 
-div.style.background=
+div.style.background =
 `rgb(${c.r},${c.g},${c.b})`
 
 document.getElementById("palette")
@@ -203,25 +194,17 @@ let file = e.target.files[0]
 let buf = await file.arrayBuffer()
 
 if(file.name.endsWith(".aco")){
-
 parseACO(buf)
-
 }
 
 if(file.name.endsWith(".ase")){
-
 parseASE(buf)
-
 }
 
 if(file.name.endsWith(".json")){
-
 let text = await file.text()
-
 let arr = JSON.parse(text)
-
 arr.forEach(addPaletteColor)
-
 }
 
 }
@@ -243,11 +226,9 @@ let b=view.getUint16(offset+6)/256
 offset+=10
 
 addPaletteColor({
-
 r:Math.round(r),
 g:Math.round(g),
 b:Math.round(b)
-
 })
 
 }
@@ -261,9 +242,7 @@ let view=new DataView(buffer)
 let str=""
 
 for(let i=0;i<buffer.byteLength;i++){
-
 str+=String.fromCharCode(view.getUint8(i))
-
 }
 
 let matches=[...str.matchAll(/RGB(.{12})/g)]
@@ -271,13 +250,9 @@ let matches=[...str.matchAll(/RGB(.{12})/g)]
 matches.forEach(m=>{
 
 let dv=new DataView(
-
 new Uint8Array(
-
 m[1].split("").map(c=>c.charCodeAt(0))
-
 ).buffer
-
 )
 
 let r=dv.getFloat32(0)*255
@@ -285,11 +260,9 @@ let g=dv.getFloat32(4)*255
 let b=dv.getFloat32(8)*255
 
 addPaletteColor({
-
 r:Math.round(r),
 g:Math.round(g),
 b:Math.round(b)
-
 })
 
 })
