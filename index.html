@@ -1,271 +1,235 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <title>이미지 색상 팔레트 매칭 도구</title>
 
 <style>
 body{
-font-family:sans-serif;
-background:#111;
-color:white;
+font-family:Arial, sans-serif;
+background:#f5f5f5;
 text-align:center;
+padding:30px;
 }
 
-canvas{
-border:1px solid #444;
+h1{
+margin-bottom:20px;
+}
+
+.section{
+margin:20px 0;
+}
+
+#imagePreview{
+max-width:600px;
+max-height:600px;
+border:2px solid #ccc;
+border-radius:10px;
 cursor:crosshair;
 }
 
-.palette{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-top:10px;
-justify-content:center;
-}
-
 .colorBox{
-width:40px;
-height:40px;
+width:120px;
+height:120px;
+border-radius:10px;
 border:2px solid #333;
+margin:10px auto;
 }
 
-.match{
-border:4px solid yellow;
+.label{
+font-weight:bold;
+margin-top:10px;
 }
+
+.fileLabel{
+display:block;
+margin-bottom:5px;
+font-weight:bold;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>이미지 색상 → 팔레트 색 찾기</h2>
+<h1>이미지 색상 → 팔레트 색 찾기</h1>
 
-<p>이미지를 업로드하고 원하는 색을 클릭하세요</p>
+<div class="section">
 
-<input type="file" id="imageUpload">
+<label class="fileLabel">이미지 업로드</label>
+<input type="file" id="imageUpload" accept="image/*">
 
 <br><br>
 
-<canvas id="canvas"></canvas>
+<img id="imagePreview">
 
-<h3>선택한 색상</h3>
-<div id="picked" style="width:60px;height:60px;margin:auto;"></div>
+</div>
 
-<h3>가장 가까운 팔레트 색상</h3>
-<div id="closest" style="width:60px;height:60px;margin:auto;"></div>
 
-<p id="delta"></p>
+<div class="section">
 
-<h3>팔레트 업로드 (.aco .ase .json)</h3>
+<div class="label">선택한 색상</div>
+<div id="selectedColor" class="colorBox"></div>
+<div id="selectedHex"></div>
 
+</div>
+
+
+<div class="section">
+
+<div class="label">가장 가까운 팔레트 색상</div>
+<div id="closestColor" class="colorBox"></div>
+<div id="closestHex"></div>
+
+</div>
+
+
+<div class="section">
+
+<label class="fileLabel">팔레트 업로드 (.aco .ase .json)</label>
 <input type="file" id="paletteUpload">
 
-<div class="palette" id="palette"></div>
+</div>
+
 
 <script>
 
-let palette = []
+let palette=[]
 
-const canvas = document.getElementById("canvas")
-const ctx = canvas.getContext("2d")
+const imageUpload=document.getElementById("imageUpload")
+const paletteUpload=document.getElementById("paletteUpload")
+const imagePreview=document.getElementById("imagePreview")
 
-document.getElementById("imageUpload").onchange = e=>{
+const selectedColor=document.getElementById("selectedColor")
+const closestColor=document.getElementById("closestColor")
 
-let file = e.target.files[0]
-let img = new Image()
+const selectedHex=document.getElementById("selectedHex")
+const closestHex=document.getElementById("closestHex")
 
-img.onload = ()=>{
-canvas.width = img.width
-canvas.height = img.height
-ctx.drawImage(img,0,0)
+
+imageUpload.addEventListener("change",function(){
+
+const file=this.files[0]
+if(!file) return
+
+const reader=new FileReader()
+
+reader.onload=function(e){
+imagePreview.src=e.target.result
 }
 
-img.src = URL.createObjectURL(file)
+reader.readAsDataURL(file)
+
+})
+
+
+paletteUpload.addEventListener("change",function(){
+
+const file=this.files[0]
+if(!file) return
+
+const reader=new FileReader()
+
+reader.onload=function(e){
+
+try{
+
+palette=JSON.parse(e.target.result)
+
+}catch{
+
+alert("팔레트 파일을 읽을 수 없습니다.")
 
 }
 
-canvas.onclick = e=>{
-
-let rect = canvas.getBoundingClientRect()
-
-let x = e.clientX - rect.left
-let y = e.clientY - rect.top
-
-let data = ctx.getImageData(x,y,1,1).data
-
-let color = {
-r:data[0],
-g:data[1],
-b:data[2]
 }
 
-showPicked(color)
-findClosest(color)
+reader.readAsText(file)
+
+})
+
+
+imagePreview.addEventListener("click",function(e){
+
+const canvas=document.createElement("canvas")
+const ctx=canvas.getContext("2d")
+
+canvas.width=imagePreview.width
+canvas.height=imagePreview.height
+
+ctx.drawImage(imagePreview,0,0,canvas.width,canvas.height)
+
+const rect=imagePreview.getBoundingClientRect()
+
+const x=e.clientX-rect.left
+const y=e.clientY-rect.top
+
+const pixel=ctx.getImageData(x,y,1,1).data
+
+const r=pixel[0]
+const g=pixel[1]
+const b=pixel[2]
+
+const hex=rgbToHex(r,g,b)
+
+selectedColor.style.background=hex
+selectedHex.innerText=hex
+
+findClosestColor(r,g,b)
+
+})
+
+
+function rgbToHex(r,g,b){
+
+return "#"+[r,g,b].map(x=>{
+
+const hex=x.toString(16)
+return hex.length===1?"0"+hex:hex
+
+}).join("")
 
 }
 
-function showPicked(c){
 
-let el = document.getElementById("picked")
+function findClosestColor(r,g,b){
 
-el.style.background =
-`rgb(${c.r},${c.g},${c.b})`
+if(palette.length===0) return
 
-}
+let closest=null
+let minDist=999999
 
-function dist(c1,c2){
+palette.forEach(color=>{
 
-return Math.sqrt(
-(c1.r-c2.r)**2 +
-(c1.g-c2.g)**2 +
-(c1.b-c2.b)**2
+const cr=color.r
+const cg=color.g
+const cb=color.b
+
+const dist=Math.sqrt(
+
+(r-cr)*(r-cr)+
+(g-cg)*(g-cg)+
+(b-cb)*(b-cb)
+
 )
 
-}
+if(dist<minDist){
 
-function findClosest(target){
-
-let best=null
-let min=999999
-
-palette.forEach(c=>{
-
-let d=dist(target,c)
-
-if(d<min){
-min=d
-best=c
-}
-
-})
-
-if(!best)return
-
-document.getElementById("closest").style.background=
-`rgb(${best.r},${best.g},${best.b})`
-
-document.getElementById("delta").innerText =
-"색상 차이 값: "+min.toFixed(2)
-
-highlight(best)
-
-}
-
-function highlight(c){
-
-document.querySelectorAll(".colorBox")
-.forEach(b=>b.classList.remove("match"))
-
-palette.forEach((p,i)=>{
-
-if(p===c){
-
-document.querySelectorAll(".colorBox")[i]
-.classList.add("match")
+minDist=dist
+closest=color
 
 }
 
 })
 
-}
+if(closest){
 
-function addPaletteColor(c){
+const hex=rgbToHex(closest.r,closest.g,closest.b)
 
-palette.push(c)
-
-let div=document.createElement("div")
-
-div.className="colorBox"
-
-div.style.background =
-`rgb(${c.r},${c.g},${c.b})`
-
-document.getElementById("palette")
-.appendChild(div)
+closestColor.style.background=hex
+closestHex.innerText=hex
 
 }
-
-document.getElementById("paletteUpload")
-.onchange = async e=>{
-
-let file = e.target.files[0]
-
-let buf = await file.arrayBuffer()
-
-if(file.name.endsWith(".aco")){
-parseACO(buf)
-}
-
-if(file.name.endsWith(".ase")){
-parseASE(buf)
-}
-
-if(file.name.endsWith(".json")){
-let text = await file.text()
-let arr = JSON.parse(text)
-arr.forEach(addPaletteColor)
-}
-
-}
-
-function parseACO(buffer){
-
-let view=new DataView(buffer)
-
-let count=view.getUint16(2)
-
-let offset=4
-
-for(let i=0;i<count;i++){
-
-let r=view.getUint16(offset+2)/256
-let g=view.getUint16(offset+4)/256
-let b=view.getUint16(offset+6)/256
-
-offset+=10
-
-addPaletteColor({
-r:Math.round(r),
-g:Math.round(g),
-b:Math.round(b)
-})
-
-}
-
-}
-
-function parseASE(buffer){
-
-let view=new DataView(buffer)
-
-let str=""
-
-for(let i=0;i<buffer.byteLength;i++){
-str+=String.fromCharCode(view.getUint8(i))
-}
-
-let matches=[...str.matchAll(/RGB(.{12})/g)]
-
-matches.forEach(m=>{
-
-let dv=new DataView(
-new Uint8Array(
-m[1].split("").map(c=>c.charCodeAt(0))
-).buffer
-)
-
-let r=dv.getFloat32(0)*255
-let g=dv.getFloat32(4)*255
-let b=dv.getFloat32(8)*255
-
-addPaletteColor({
-r:Math.round(r),
-g:Math.round(g),
-b:Math.round(b)
-})
-
-})
 
 }
 
