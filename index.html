@@ -8,7 +8,8 @@
 
 body{
 font-family:Arial;
-background:#f4f4f4;
+background:#1e1e1e;
+color:white;
 text-align:center;
 padding:30px;
 }
@@ -20,7 +21,7 @@ margin-bottom:20px;
 #imagePreview{
 width:700px;
 max-width:90vw;
-border:2px solid #aaa;
+border:2px solid #666;
 border-radius:10px;
 cursor:crosshair;
 image-rendering:pixelated;
@@ -31,7 +32,7 @@ width:120px;
 height:120px;
 margin:auto;
 border-radius:10px;
-border:2px solid #333;
+border:2px solid #aaa;
 }
 
 #paletteGrid{
@@ -46,6 +47,10 @@ margin-top:20px;
 width:30px;
 height:30px;
 border:1px solid #000;
+}
+
+.highlight{
+border:3px solid yellow !important;
 }
 
 </style>
@@ -247,8 +252,9 @@ if(palette.length===0) return
 
 let closest=null
 let minDist=999999
+let closestIndex=-1
 
-palette.forEach(color=>{
+palette.forEach((color,index)=>{
 
 const dist=Math.sqrt(
 (r-color.r)*(r-color.r)+
@@ -260,6 +266,7 @@ if(dist<minDist){
 
 minDist=dist
 closest=color
+closestIndex=index
 
 }
 
@@ -271,6 +278,14 @@ const hex=rgbToHex(closest.r,closest.g,closest.b)
 
 closestColor.style.background=hex
 closestHex.innerText=hex
+
+document.querySelectorAll(".paletteColor").forEach(el=>{
+el.classList.remove("highlight")
+})
+
+if(closestIndex>=0){
+document.querySelectorAll(".paletteColor")[closestIndex].classList.add("highlight")
+}
 
 }
 
