@@ -2,83 +2,50 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이미지 팔레트 색상 찾기</title>
+<title>이미지 색상 → 팔레트 색 찾기</title>
 
 <style>
 
 body{
-background:#2b2b2b;
-color:white;
-font-family:sans-serif;
+font-family:Arial;
+background:#f4f4f4;
 text-align:center;
-margin:0;
-padding:20px;
+padding:30px;
 }
 
 h1{
-margin-bottom:10px;
+margin-bottom:20px;
 }
 
-.controls{
-margin-bottom:15px;
-}
-
-#canvasContainer{
-display:flex;
-justify-content:center;
-margin-top:20px;
-}
-
-canvas{
-border:1px solid #555;
+#imagePreview{
+width:700px;
+max-width:90vw;
+border:2px solid #aaa;
+border-radius:10px;
 cursor:crosshair;
 image-rendering:pixelated;
 }
 
-.colorRow{
-display:flex;
-justify-content:center;
-gap:40px;
-margin-top:20px;
-}
-
 .colorBox{
-width:90px;
-height:90px;
-border:3px solid #444;
-}
-
-.palette{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-margin-top:20px;
-max-width:1100px;
-margin-left:auto;
-margin-right:auto;
-}
-
-.paletteItem{
-display:flex;
-flex-direction:column;
-align-items:center;
-margin:4px;
-}
-
-.paletteColor{
-width:32px;
-height:32px;
+width:120px;
+height:120px;
+margin:auto;
+border-radius:10px;
 border:2px solid #333;
 }
 
-.paletteName{
-font-size:11px;
-margin-top:3px;
-color:#ccc;
+#paletteGrid{
+display:grid;
+grid-template-columns:repeat(auto-fill,30px);
+justify-content:center;
+gap:4px;
+margin-top:20px;
 }
 
-.highlight{
-border:3px solid yellow !important;
+.paletteColor{
+width:30px;
+height:30px;
+border:1px solid #000;
 }
 
 </style>
@@ -86,230 +53,75 @@ border:3px solid yellow !important;
 
 <body>
 
-<h1>이미지 → 팔레트 색상 찾기</h1>
+<h1>이미지 색상 → 팔레트 색 찾기</h1>
 
-<div class="controls">
-
-이미지 업로드
-<input type="file" id="imageUpload">
+<h3>이미지 업로드</h3>
+<input type="file" id="imageUpload" accept="image/*">
 
 <br><br>
 
-ACO 팔레트 업로드
-<input type="file" id="paletteUpload" accept=".aco">
+<img id="imagePreview">
 
-</div>
-
-<div class="colorRow">
-
-<div>
-선택한 색
+<h3>선택한 색</h3>
 <div id="selectedColor" class="colorBox"></div>
-</div>
+<div id="selectedHex"></div>
 
-<div>
-가장 가까운 팔레트 색
+<h3>가장 가까운 팔레트 색</h3>
 <div id="closestColor" class="colorBox"></div>
-</div>
+<div id="closestHex"></div>
 
-</div>
+<h3>팔레트 업로드 (.aco)</h3>
+<input type="file" id="paletteUpload">
 
-<div class="palette" id="paletteList"></div>
-
-<div id="canvasContainer">
-<canvas id="canvas"></canvas>
-</div>
+<h3>팔레트 색 목록</h3>
+<div id="paletteGrid"></div>
 
 <script>
 
-const canvas=document.getElementById("canvas")
-const ctx=canvas.getContext("2d")
-
-const hiddenCanvas=document.createElement("canvas")
-const hiddenCtx=hiddenCanvas.getContext("2d")
-
-let img=new Image()
 let palette=[]
 
-let scale=1
-let offsetX=0
-let offsetY=0
+const imageUpload=document.getElementById("imageUpload")
+const paletteUpload=document.getElementById("paletteUpload")
+const imagePreview=document.getElementById("imagePreview")
 
-let dragging=false
-let dragStartX=0
-let dragStartY=0
+const selectedColor=document.getElementById("selectedColor")
+const closestColor=document.getElementById("closestColor")
 
+const selectedHex=document.getElementById("selectedHex")
+const closestHex=document.getElementById("closestHex")
 
-function draw(){
+const paletteGrid=document.getElementById("paletteGrid")
 
-ctx.clearRect(0,0,canvas.width,canvas.height)
+imageUpload.addEventListener("change",function(){
 
-ctx.save()
-
-ctx.translate(offsetX,offsetY)
-ctx.scale(scale,scale)
-
-// ⭐ 이미지 4배 확대 표시
-ctx.drawImage(img,0,0,img.width*4,img.height*4)
-
-ctx.restore()
-
-}
-
-
-function distance(a,b){
-
-return Math.sqrt(
-(a.r-b.r)**2+
-(a.g-b.g)**2+
-(a.b-b.b)**2
-)
-
-}
-
-
-function findClosest(color){
-
-let best=null
-let bestDist=999999
-
-palette.forEach(p=>{
-
-let d=distance(color,p)
-
-if(d<bestDist){
-bestDist=d
-best=p
-}
-
-})
-
-return best
-
-}
-
-
-function updatePaletteHighlight(color){
-
-document.querySelectorAll(".paletteColor").forEach(el=>{
-el.classList.remove("highlight")
-})
-
-palette.forEach((p,i)=>{
-
-if(p.r===color.r && p.g===color.g && p.b===color.b){
-
-document.querySelectorAll(".paletteColor")[i].classList.add("highlight")
-
-}
-
-})
-
-}
-
-
-canvas.addEventListener("click",e=>{
-
-const x=(e.offsetX-offsetX)/scale/4
-const y=(e.offsetY-offsetY)/scale/4
-
-const data=hiddenCtx.getImageData(x,y,1,1).data
-
-const color={
-r:data[0],
-g:data[1],
-b:data[2]
-}
-
-document.getElementById("selectedColor").style.background=
-`rgb(${color.r},${color.g},${color.b})`
-
-const closest=findClosest(color)
-
-if(closest){
-
-document.getElementById("closestColor").style.background=
-`rgb(${closest.r},${closest.g},${closest.b})`
-
-updatePaletteHighlight(closest)
-
-}
-
-})
-
-
-canvas.addEventListener("wheel",e=>{
-
-e.preventDefault()
-
-if(e.deltaY<0){
-scale*=1.1
-}else{
-scale*=0.9
-}
-
-draw()
-
-})
-
-
-canvas.addEventListener("mousedown",e=>{
-
-dragging=true
-dragStartX=e.offsetX-offsetX
-dragStartY=e.offsetY-offsetY
-
-})
-
-
-canvas.addEventListener("mouseup",()=>{
-
-dragging=false
-
-})
-
-
-canvas.addEventListener("mousemove",e=>{
-
-if(dragging){
-
-offsetX=e.offsetX-dragStartX
-offsetY=e.offsetY-dragStartY
-
-draw()
-
-}
-
-})
-
-
-document.getElementById("imageUpload").addEventListener("change",e=>{
-
-const file=e.target.files[0]
+const file=this.files[0]
+if(!file) return
 
 const reader=new FileReader()
 
-reader.onload=function(ev){
+reader.onload=function(e){
+
+const img=new Image()
 
 img.onload=function(){
 
-canvas.width=img.width*4
-canvas.height=img.height*4
+const canvas=document.createElement("canvas")
+const ctx=canvas.getContext("2d")
 
-hiddenCanvas.width=img.width
-hiddenCanvas.height=img.height
+const scale=4
 
-hiddenCtx.drawImage(img,0,0)
+canvas.width=img.width*scale
+canvas.height=img.height*scale
 
-scale=1
-offsetX=0
-offsetY=0
+ctx.imageSmoothingEnabled=false
 
-draw()
+ctx.drawImage(img,0,0,canvas.width,canvas.height)
+
+imagePreview.src=canvas.toDataURL()
 
 }
 
-img.src=ev.target.result
+img.src=e.target.result
 
 }
 
@@ -317,16 +129,20 @@ reader.readAsDataURL(file)
 
 })
 
+paletteUpload.addEventListener("change",function(){
 
-document.getElementById("paletteUpload").addEventListener("change",e=>{
-
-const file=e.target.files[0]
+const file=this.files[0]
+if(!file) return
 
 const reader=new FileReader()
 
-reader.onload=function(ev){
+reader.onload=function(e){
 
-parseACO(ev.target.result)
+palette=parseACO(e.target.result)
+
+displayPalette()
+
+alert("팔레트 색 "+palette.length+"개 로드됨")
 
 }
 
@@ -334,87 +150,129 @@ reader.readAsArrayBuffer(file)
 
 })
 
-
 function parseACO(buffer){
 
 const view=new DataView(buffer)
 
-let pos=0
+let colors=[]
 
-const version=view.getUint16(pos); pos+=2
-const count=view.getUint16(pos); pos+=2
+let count=view.getUint16(2)
 
-palette=[]
+let offset=4
 
 for(let i=0;i<count;i++){
 
-const colorSpace=view.getUint16(pos); pos+=2
+offset+=2
 
-const r=view.getUint16(pos); pos+=2
-const g=view.getUint16(pos); pos+=2
-const b=view.getUint16(pos); pos+=2
-pos+=2
+let r=view.getUint16(offset)/256
+offset+=2
 
-let name=""
+let g=view.getUint16(offset)/256
+offset+=2
 
-if(version===2){
+let b=view.getUint16(offset)/256
+offset+=2
 
-const nameLength=view.getUint32(pos); pos+=4
+offset+=2
 
-let chars=[]
-
-for(let j=0;j<nameLength-1;j++){
-
-chars.push(String.fromCharCode(view.getUint16(pos)))
-pos+=2
+colors.push({r,g,b})
 
 }
 
-name=chars.join("")
-
-pos+=2
+return colors
 
 }
-
-palette.push({
-r:Math.round(r/256),
-g:Math.round(g/256),
-b:Math.round(b/256),
-name:name
-})
-
-}
-
-displayPalette()
-
-}
-
 
 function displayPalette(){
 
-const list=document.getElementById("paletteList")
+paletteGrid.innerHTML=""
 
-list.innerHTML=""
+palette.forEach(color=>{
 
-palette.forEach(c=>{
+const hex=rgbToHex(color.r,color.g,color.b)
 
-const item=document.createElement("div")
-item.className="paletteItem"
+const div=document.createElement("div")
+div.className="paletteColor"
+div.style.background=hex
+div.title=hex
 
-const box=document.createElement("div")
-box.className="paletteColor"
-box.style.background=`rgb(${c.r},${c.g},${c.b})`
-
-const name=document.createElement("div")
-name.className="paletteName"
-name.textContent=c.name || ""
-
-item.appendChild(box)
-item.appendChild(name)
-
-list.appendChild(item)
+paletteGrid.appendChild(div)
 
 })
+
+}
+
+imagePreview.addEventListener("click",function(e){
+
+const canvas=document.createElement("canvas")
+const ctx=canvas.getContext("2d")
+
+canvas.width=imagePreview.width
+canvas.height=imagePreview.height
+
+ctx.drawImage(imagePreview,0,0,canvas.width,canvas.height)
+
+const rect=imagePreview.getBoundingClientRect()
+
+const x=e.clientX-rect.left
+const y=e.clientY-rect.top
+
+const pixel=ctx.getImageData(x,y,1,1).data
+
+const r=pixel[0]
+const g=pixel[1]
+const b=pixel[2]
+
+const hex=rgbToHex(r,g,b)
+
+selectedColor.style.background=hex
+selectedHex.innerText=hex
+
+findClosestColor(r,g,b)
+
+})
+
+function rgbToHex(r,g,b){
+
+return "#"+[r,g,b].map(x=>{
+const hex=Math.round(x).toString(16)
+return hex.length===1?"0"+hex:hex
+}).join("")
+
+}
+
+function findClosestColor(r,g,b){
+
+if(palette.length===0) return
+
+let closest=null
+let minDist=999999
+
+palette.forEach(color=>{
+
+const dist=Math.sqrt(
+(r-color.r)*(r-color.r)+
+(g-color.g)*(g-color.g)+
+(b-color.b)*(b-color.b)
+)
+
+if(dist<minDist){
+
+minDist=dist
+closest=color
+
+}
+
+})
+
+if(closest){
+
+const hex=rgbToHex(closest.r,closest.g,closest.b)
+
+closestColor.style.background=hex
+closestHex.innerText=hex
+
+}
 
 }
 
