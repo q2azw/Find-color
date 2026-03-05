@@ -18,26 +18,23 @@ h1{
 margin-bottom:20px;
 }
 
-/* 메인 컨테이너: 좌우 배치 */
 #mainContainer{
-  display:flex;
-  justify-content:center;
-  gap:40px;
-  align-items:flex-start;
+display:flex;
+justify-content:center;
+gap:40px;
+align-items:flex-start;
 }
 
-/* 왼쪽: 팔레트 + 파일 업로드 */
 #leftPanel{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+display:flex;
+flex-direction:column;
+align-items:center;
 }
 
-/* 오른쪽: 이미지 + 이미지 업로드 버튼 위쪽 배치 */
 #rightPanel{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+display:flex;
+flex-direction:column;
+align-items:center;
 }
 
 #imagePreview{
@@ -58,10 +55,10 @@ border-radius:10px;
 border:2px solid #aaa;
 }
 
+/* ⭐ 여기만 수정됨 */
 #paletteGrid{
 display:grid;
-grid-template-columns:repeat(auto-fill,30px);
-justify-content:center;
+grid-template-columns:repeat(10,30px);
 gap:4px;
 margin-top:20px;
 }
@@ -86,7 +83,6 @@ border:2px solid yellow !important;
 
 <div id="mainContainer">
 
-<!-- 왼쪽: 팔레트 + 파일 업로드 -->
 <div id="leftPanel">
 
 <h3>팔레트 업로드 (.aco)</h3>
@@ -105,7 +101,6 @@ border:2px solid yellow !important;
 
 </div>
 
-<!-- 오른쪽: 이미지 업로드 버튼 + 이미지 -->
 <div id="rightPanel">
 
 <h3>이미지 업로드</h3>
@@ -115,8 +110,10 @@ border:2px solid yellow !important;
 
 </div>
 
+</div>
+
 <script>
-// 기존 전체 코드 그대로 유지
+
 let palette=[]
 
 const imageUpload=document.getElementById("imageUpload")
@@ -189,7 +186,6 @@ reader.readAsArrayBuffer(file)
 
 })
 
-// ⭐ 수정: ACO 색상 변환 시 Math.round 적용
 function parseACO(buffer){
 
 const view=new DataView(buffer)
@@ -204,7 +200,7 @@ for(let i=0;i<count;i++){
 
 offset+=2
 
-let r=Math.round(view.getUint16(offset)/256)  // 반올림
+let r=Math.round(view.getUint16(offset)/256)
 offset+=2
 
 let g=Math.round(view.getUint16(offset)/256)
@@ -315,10 +311,11 @@ closestColor.style.background=hex
 closestHex.innerText=hex
 
 document.querySelectorAll(".paletteColor").forEach((el,i)=>{
-  el.classList.remove("highlight")
+el.classList.remove("highlight")
 })
+
 if(closestIndex>=0){
-  document.querySelectorAll(".paletteColor")[closestIndex].classList.add("highlight")
+document.querySelectorAll(".paletteColor")[closestIndex].classList.add("highlight")
 }
 
 }
