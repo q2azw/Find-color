@@ -46,11 +46,12 @@ margin-top:20px;
 .paletteColor{
 width:30px;
 height:30px;
-border:1px solid #000;
+border:2px solid black;       /* 기본 border 두께 고정 */
+box-sizing:border-box;         /* border 포함 크기 계산 */
 }
 
 .highlight{
-border:3px solid yellow !important;
+border:2px solid yellow !important; /* highlight 시에도 전체 크기 변하지 않음 */
 }
 
 </style>
@@ -279,15 +280,13 @@ const hex=rgbToHex(closest.r,closest.g,closest.b)
 closestColor.style.background=hex
 closestHex.innerText=hex
 
-// ⭐ 기존 highlight 제거 후 바로 추가하지 않고
-// 현재 closestIndex만 강조
+// ⭐ highlight 처리: 선택된 색만 강조, 흔들림 없음
 document.querySelectorAll(".paletteColor").forEach((el,i)=>{
-  if(i===closestIndex){
-    el.classList.add("highlight")
-  } else {
-    el.classList.remove("highlight")
-  }
+  el.classList.remove("highlight")
 })
+if(closestIndex>=0){
+  document.querySelectorAll(".paletteColor")[closestIndex].classList.add("highlight")
+}
 
 }
 
